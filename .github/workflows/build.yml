@@ -1,60 +1,56 @@
 name: Build Kivy APK
 
 on:
-  workflow_dispatch:
   push:
-    branches: [main]
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-22.04
 
     env:
-      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+      ANDROID_SDK_ROOT: $HOME/.buildozer/android/platform/android-sdk
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y zip unzip openjdk-17-jdk python3-pip libfreetype6-dev libpng-dev libjpeg-dev libz-dev \
-                              libgl1-mesa-dev libgles2-mesa-dev libncurses5 libffi-dev libssl-dev libsdl2-dev \
-                              libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libmtdev-dev libavcodec-dev \
-                              libavformat-dev libswscale-dev libgstreamer-plugins-base1.0-dev libpq-dev \
-                              libportmidi-dev libunwind-dev
+          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git libffi-dev libssl-dev \
+              libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+              libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev \
+              libgstreamer-plugins-base1.0-dev libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
+              libjpeg-dev libpng-dev libfreetype6-dev libpq-dev libunwind-dev
+          pip install --upgrade cython buildozer
 
-      - name: Install Buildozer
-        run: |
-          pip install --upgrade pip
-          pip install buildozer cython
-
-      - name: Set up Android SDK
+      - name: Install Android SDK Command Line Tools
         run: |
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
           cd $ANDROID_SDK_ROOT/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O tools.zip
-          unzip tools.zip
-          mv cmdline-tools latest
+          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
+          unzip -q tools.zip -d temp
+          mv temp/cmdline-tools latest
+          rm tools.zip
 
-      - name: Accept licenses and install packages
+      - name: Accept SDK Licenses and Install Build Tools
         run: |
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
-            "platform-tools" "platforms;android-31" "build-tools;31.0.0"
-
-      - name: Initialize Buildozer
-        run: |
-          buildozer init || true
+            "platform-tools" \
+            "platforms;android-31" \
+            "build-tools;31.0.0"
 
       - name: Build APK
         run: |
+          buildozer init || true
           buildozer android debug
 
       - name: Upload APK
