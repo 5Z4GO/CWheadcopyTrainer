@@ -9,68 +9,61 @@ jobs:
   build:
     runs-on: ubuntu-22.04
 
+    env:
+      ANDROID_SDK_ROOT: $HOME/.buildozer/android/platform/android-sdk
+      ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
+      ANDROID_NDK_HOME: $HOME/.buildozer/android/platform/android-ndk-r25b
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Install system dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y zip unzip curl openjdk-17-jdk python3-pip git
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git \
+              libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+              libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev \
+              libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
+              libgstreamer-plugins-base1.0-dev libffi-dev libssl-dev libjpeg-dev \
+              libpng-dev libfreetype6-dev libpq-dev libunwind-dev
 
-    - name: Set environment for Java 17
-      run: |
-        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-        echo "$JAVA_HOME/bin" >> $GITHUB_PATH
+          pip install --upgrade cython buildozer
 
-    - name: Set up Android SDK inside .buildozer
-      run: |
-        mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
-        cd $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
-        curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-        unzip sdk-tools.zip
-        mv cmdline-tools latest
+      - name: Set up Android SDK and NDK
+        run: |
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT/cmdline-tools
+          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip sdk-tools.zip
+          mv cmdline-tools latest
 
-        export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
-        export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
+          # Symlink 'tools' to 'latest' so Buildozer can find sdkmanager
+          ln -sfn $ANDROID_SDK_ROOT/cmdline-tools/latest $ANDROID_SDK_ROOT/cmdline-tools/tools
 
-        yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
-          "platform-tools" \
-          "platforms;android-31" \
-          "build-tools;30.0.3"
+          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
 
-        yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
+          yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
+            "platform-tools" \
+            "platforms;android-31" \
+            "build-tools;30.0.3" \
+            "ndk;25.2.9519653"
 
-    - name: Install Buildozer
-      run: |
-        pip install --upgrade pip
-        pip install cython
-        pip install buildozer
+          yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
 
-    - name: Build APK
-      run: |
-        export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
-        export ANDROID_HOME=$ANDROID_SDK_ROOT
-        export PATH=$ANDROID_SDK_ROOT/build-tools/30.0.3:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
+      - name: Build APK with Buildozer
+        run: |
+          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
+          buildozer init || true
+          buildozer android debug
 
-        buildozer init || true
-
-        # Force buildozer.spec to use correct SDK & build-tools
-        sed -i 's/^# android.sdk_path =.*/android.sdk_path = \/home\/runner\/.buildozer\/android\/platform\/android-sdk/' buildozer.spec
-        sed -i 's/^# android.ndk_path =.*/android.ndk_path = \/home\/runner\/.buildozer\/android\/platform\/android-ndk-r25b/' buildozer.spec
-        sed -i 's/^# android.accept_sdk_license =.*/android.accept_sdk_license = True/' buildozer.spec
-        sed -i 's/^# android.api =.*/android.api = 31/' buildozer.spec
-        sed -i 's/^# android.build_tools_version =.*/android.build_tools_version = 30.0.3/' buildozer.spec
-
-        buildozer android debug
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: CWheadcopyTrainer.apk
-        path: bin/*.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CWheadcopyTrainer.apk
+          path: bin/*.apk
