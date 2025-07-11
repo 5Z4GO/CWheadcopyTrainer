@@ -18,10 +18,13 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt update
           sudo apt install -y zip unzip openjdk-17-jdk python3-pip git libgl1-mesa-dev
+
+      - name: Install Python dependencies
+        run: |
           pip install buildozer cython
 
       - name: Install Android SDK Commandline Tools
@@ -29,17 +32,18 @@ jobs:
           mkdir -p /home/runner/android-sdk/cmdline-tools
           cd /home/runner/android-sdk/cmdline-tools
           curl -o tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip tools.zip -d temp
-          mv temp/cmdline-tools latest
-          rm -rf temp tools.zip
-          yes | /home/runner/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/android-sdk \
+          unzip tools.zip -d cmdline-tools
+          mv cmdline-tools latest
+          rm tools.zip
+          echo "yes" | /home/runner/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/android-sdk \
             "platform-tools" "platforms;android-31" "build-tools;33.0.2" "ndk;25.2.9519653"
 
       - name: Set environment variables
         run: |
-          echo "export ANDROIDSDK=/home/runner/android-sdk" >> $GITHUB_ENV
-          echo "export ANDROIDNDK=/home/runner/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "export PATH=$PATH:/home/runner/android-sdk/cmdline-tools/latest/bin:/home/runner/android-sdk/platform-tools" >> $GITHUB_ENV
+          echo "ANDROIDSDK=/home/runner/android-sdk" >> $GITHUB_ENV
+          echo "ANDROIDNDK=/home/runner/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "/home/runner/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "/home/runner/android-sdk/platform-tools" >> $GITHUB_PATH
 
       - name: Build APK
         run: |
