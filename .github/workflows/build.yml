@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04  # ⚠️ use 22.04 — 20.04 is deprecated
+    runs-on: ubuntu-22.04  # ✅ Avoid deprecated Ubuntu 20.04
 
     steps:
     - name: Checkout repository
@@ -18,24 +18,33 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install dependencies
+    - name: Install system dependencies
       run: |
         sudo apt update
-        sudo apt install -y zip unzip openjdk-17-jdk python3-pip git
+        sudo apt install -y zip unzip curl openjdk-17-jdk python3-pip git
 
-    - name: Set up Android SDK manually
+    - name: Set environment for Java 17
+      run: |
+        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+        echo "$JAVA_HOME/bin" >> $GITHUB_PATH
+
+    - name: Set up Android SDK
       run: |
         mkdir -p $HOME/android-sdk/cmdline-tools
         cd $HOME/android-sdk/cmdline-tools
         curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
         unzip sdk-tools.zip
         mv cmdline-tools latest
-        export PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$PATH
-        yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
+
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
+        export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
+
+        yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
           "platform-tools" \
           "platforms;android-31" \
           "build-tools;30.0.3"
-        yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+
+        yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
 
     - name: Install Buildozer
       run: |
@@ -45,15 +54,15 @@ jobs:
 
     - name: Build APK
       run: |
-        export ANDROIDSDK=$HOME/android-sdk
-        export ANDROID_HOME=$ANDROIDSDK
-        export PATH=$ANDROIDSDK/platform-tools:$ANDROIDSDK/cmdline-tools/latest/bin:$PATH
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
+        export ANDROID_HOME=$ANDROID_SDK_ROOT
+        export PATH=$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
 
         buildozer init || true
         buildozer android debug
 
     - name: Upload APK
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4   # ✅ Ensure we use v4
       with:
         name: CWheadcopyTrainer.apk
         path: bin/*.apk
