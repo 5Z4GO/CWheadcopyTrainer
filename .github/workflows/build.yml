@@ -28,7 +28,7 @@ jobs:
         run: |
           sudo apt install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
               libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev \
-              libgstreamer1.0 libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
+              libgstreamer1.0-dev libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
               libgstreamer-plugins-base1.0-dev libffi-dev libssl-dev libjpeg-dev \
               libpng-dev libfreetype6-dev libpq-dev
           pip install --upgrade buildozer
@@ -36,8 +36,7 @@ jobs:
           buildozer android debug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
-        
+        uses: actions/upload-artifact@v3
         with:
           name: CWheadcopyTrainer.apk
           path: bin/*.apk
