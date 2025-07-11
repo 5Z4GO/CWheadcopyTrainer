@@ -1,4 +1,3 @@
-# File: .github/workflows/build.yml
 name: Build Kivy APK
 
 on:
@@ -24,35 +23,37 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libunwind-dev
-          sudo apt-get install -y zip unzip openjdk-17-jdk python3-pip git libffi-dev \
-            libssl-dev libgl1-mesa-dev libgles2-mesa-dev libgstreamer-plugins-base1.0-dev \
-            libgstreamer1.0-dev libmtdev-dev libjpeg-dev libpng-dev libfreetype6-dev \
-            libavcodec-dev libavformat-dev libswscale-dev libpq-dev libzbar-dev
+          sudo apt update
+          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git curl libncurses5 libunwind-dev
 
-      - name: Install Python tools
+      - name: Install Python dependencies
         run: |
           pip install --upgrade pip
-          pip install cython buildozer
+          pip install buildozer cython
 
-      - name: Prepare Android SDK and accept licenses
+      - name: Install Android SDK Command Line Tools
         run: |
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          cd $ANDROID_SDK_ROOT/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O cmdline-tools.zip
+          curl -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip -q cmdline-tools.zip
-          mv cmdline-tools latest
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
-            "platform-tools" "platforms;android-31" "build-tools;31.0.0" "ndk;25.1.8937393"
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
+          mv cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/
 
-      - name: Initialize and build APK
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses || true
+
+      - name: Install Android SDK packages
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
+            "platform-tools" "platforms;android-31" "build-tools;31.0.0" "ndk;21.4.7075529"
+
+      - name: Build APK with Buildozer
         run: |
           buildozer init || true
           buildozer android debug
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: CWheadcopyTrainer.apk
