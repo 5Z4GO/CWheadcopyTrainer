@@ -6,6 +6,14 @@ on:
   workflow_dispatch:
 
 jobs:
+
+- name: Debug AIDL presence
+  run: |
+    echo "Contents of build-tools/31.0.0:"
+    ls -R $HOME/android-sdk/build-tools/31.0.0
+
+
+
   build:
     runs-on: ubuntu-latest
 
