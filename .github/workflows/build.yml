@@ -22,25 +22,30 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y zip unzip openjdk-17-jdk python3-pip git \
-              libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-              libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
-              zlib1g-dev libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
-              libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-              libffi-dev libssl-dev libjpeg-dev libpng-dev libfreetype6-dev \
-              libpq-dev libunwind-dev
+            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
+            zlib1g-dev libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
+            libgstreamer-plugins-base1.0-dev libffi-dev libssl-dev \
+            libjpeg-dev libpng-dev libfreetype6-dev libpq-dev \
+            libunwind-dev
 
-      - name: Install Buildozer
+      - name: Install Buildozer and Cython
         run: |
           pip install --upgrade pip
-          pip install cython buildozer
+          pip install buildozer cython
 
-      - name: Set up Android SDK manually
+      - name: Set up Android SDK
         run: |
           mkdir -p $HOME/android-sdk/cmdline-tools
           cd $HOME/android-sdk/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O tools.zip
-          unzip tools.zip
-          mv cmdline-tools latest
+          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip sdk-tools.zip -d latest
+          rm sdk-tools.zip
+
+      - name: Set Java 17 for sdkmanager
+        run: |
+          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+          echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
 
       - name: Install Android SDK packages
         run: |
@@ -53,11 +58,8 @@ jobs:
           echo "ANDROIDNDK=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
           echo "ANDROIDAPI=31" >> $GITHUB_ENV
           echo "ANDROIDMINAPI=21" >> $GITHUB_ENV
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
-      - name: Initialize Buildozer and build APK
+      - name: Build APK with Buildozer
         run: |
           buildozer init || true
           buildozer android debug
