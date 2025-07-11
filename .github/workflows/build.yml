@@ -1,3 +1,4 @@
+# File: .github/workflows/build.yml
 name: Build Kivy APK
 
 on:
@@ -24,37 +25,32 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
+          sudo apt-get install -y libunwind-dev
           sudo apt-get install -y zip unzip openjdk-17-jdk python3-pip git libffi-dev \
             libssl-dev libgl1-mesa-dev libgles2-mesa-dev libgstreamer-plugins-base1.0-dev \
             libgstreamer1.0-dev libmtdev-dev libjpeg-dev libpng-dev libfreetype6-dev \
             libavcodec-dev libavformat-dev libswscale-dev libpq-dev libzbar-dev
 
-      - name: Install Buildozer and Cython
+      - name: Install Python tools
         run: |
           pip install --upgrade pip
           pip install cython buildozer
 
-      - name: Download and set up Android command line tools
+      - name: Prepare Android SDK and accept licenses
         run: |
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          curl -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip -q cmdline-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
-          mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
-
-      - name: Accept Android SDK licenses
-        run: |
+          cd $ANDROID_SDK_ROOT/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O cmdline-tools.zip
+          unzip -q cmdline-tools.zip
+          mv cmdline-tools latest
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
+            "platform-tools" "platforms;android-31" "build-tools;31.0.0" "ndk;25.1.8937393"
 
-      - name: Install Android SDK components
+      - name: Initialize and build APK
         run: |
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
-            "platform-tools" "platforms;android-31" "build-tools;31.0.0" "ndk;23.1.7779620"
-
-      - name: Initialize Buildozer
-        run: buildozer init || true
-
-      - name: Build APK
-        run: buildozer android debug
+          buildozer init || true
+          buildozer android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
