@@ -23,33 +23,33 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt update
           sudo apt install -y zip unzip openjdk-17-jdk python3-pip git \
-              libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-              libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev \
-              libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
-              libgstreamer-plugins-base1.0-dev libffi-dev libssl-dev libjpeg-dev \
-              libpng-dev libfreetype6-dev libpq-dev libunwind-dev
+            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev \
+            libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
+            libgstreamer-plugins-base1.0-dev libffi-dev libssl-dev libjpeg-dev \
+            libpng-dev libfreetype6-dev libpq-dev libunwind-dev
 
           pip install --upgrade cython buildozer
 
-      - name: Set up Android SDK and NDK
+      - name: Download and install Android SDK cmdline-tools
         run: |
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
           cd $ANDROID_SDK_ROOT/cmdline-tools
 
           curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip sdk-tools.zip -d temp
-          mv temp/cmdline-tools latest
+          unzip sdk-tools.zip -d cmdline-tools
+          
+          # Fix path and permissions
+          mv cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
 
-          # Create 'tools' symlink for compatibility with older scripts
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          ln -sfn $ANDROID_SDK_ROOT/cmdline-tools/latest $ANDROID_SDK_ROOT/cmdline-tools/tools
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
-          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
-
+      - name: Install Android SDK components
+        run: |
           yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
             "platform-tools" \
             "platforms;android-31" \
@@ -58,9 +58,8 @@ jobs:
 
           yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
 
-      - name: Build APK with Buildozer
+      - name: Build APK
         run: |
-          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
           buildozer init || true
           buildozer android debug
 
