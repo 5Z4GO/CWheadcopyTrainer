@@ -39,11 +39,13 @@ jobs:
         run: |
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
           cd $ANDROID_SDK_ROOT/cmdline-tools
-          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip sdk-tools.zip
-          mv cmdline-tools latest
 
-          # Symlink 'tools' to 'latest' so Buildozer can find sdkmanager
+          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip sdk-tools.zip -d temp
+          mv temp/cmdline-tools latest
+
+          # Create 'tools' symlink for compatibility with older scripts
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
           ln -sfn $ANDROID_SDK_ROOT/cmdline-tools/latest $ANDROID_SDK_ROOT/cmdline-tools/tools
 
           export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
