@@ -5,85 +5,50 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-
 jobs:
-
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
-
-- name: Debug AIDL presence
-  run: |
-    echo "Contents of build-tools/31.0.0:"
-    ls -R $HOME/android-sdk/build-tools/31.0.0
-
-
-
-    
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Ensure base tools (tar, curl, unzip) are available
-        run: |
-          sudo apt update
-          sudo apt install -y tar curl unzip zip
-
-      - name: Set up Python 3.10
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
-          sudo apt install -y \
-            openjdk-17-jdk \
-            zip unzip git python3-pip \
-            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev \
-            libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
-            libgstreamer-plugins-base1.0-dev libffi-dev libssl-dev libjpeg-dev \
-            libpng-dev libfreetype6-dev libpq-dev libunwind-dev
+          sudo apt update
+          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git libgl1-mesa-dev
+          pip install --upgrade pip setuptools cython
+          pip install buildozer
 
-      - name: Install Buildozer and Cython
+      - name: Set up Android SDK
         run: |
-          pip install --upgrade pip
-          pip install buildozer cython
-
-      - name: Set up Android SDK manually and ensure AIDL is available
-        run: |
-          mkdir -p ~/.android && touch ~/.android/repositories.cfg
-          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip -d cmdline-tools
-          mkdir -p $HOME/android-sdk/cmdline-tools/latest
-          mv cmdline-tools/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/
-
-          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
-
-          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdtools.zip
+          unzip cmdtools.zip -d latest
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
             "platform-tools" \
             "platforms;android-31" \
-            "build-tools;31.0.0" \
-            "ndk;25.2.9519653" \
-            "tools"
-
-          # Manually check AIDL tool presence
-          ls -l $HOME/android-sdk/build-tools/31.0.0/aidl || (echo "AIDL not found!" && exit 1)
+            "build-tools;34.0.0" \
+            "ndk;25.2.9519653"
 
       - name: Set environment variables
         run: |
           echo "ANDROIDSDK=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "ANDROIDNDK=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "ANDROIDAPI=31" >> $GITHUB_ENV
-          echo "ANDROIDMINAPI=21" >> $GITHUB_ENV
+          echo "ANDROID_NDK=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "$HOME/android-sdk/build-tools/34.0.0" >> $GITHUB_PATH
           echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/build-tools/31.0.0" >> $GITHUB_PATH
+          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
-      - name: Init buildozer spec (if needed)
-        run: buildozer init || true
-
-      - name: Build APK
-        run: buildozer android debug
+      - name: Build the APK
+        run: |
+          buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
