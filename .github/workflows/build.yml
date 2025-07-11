@@ -46,10 +46,8 @@ jobs:
         run: |
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
           curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip -q commandlinetools.zip -d $ANDROID_SDK_ROOT/cmdline-tools/temp
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
-          mv $ANDROID_SDK_ROOT/cmdline-tools/temp/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/
-          rm -rf $ANDROID_SDK_ROOT/cmdline-tools/temp
+          unzip -q commandlinetools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
+          mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
 
       - name: Accept Android SDK licenses
         run: |
