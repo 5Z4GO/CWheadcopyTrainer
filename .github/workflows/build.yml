@@ -9,6 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -18,36 +21,35 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies and Android SDK
+      - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git wget
-          pip install buildozer cython
-
-          # Install Android SDK commandline tools
-          mkdir -p $HOME/.android/cmdline-tools
-          cd $HOME/.android/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O sdk-tools.zip
-          unzip sdk-tools.zip
-          mv cmdline-tools latest
-
-          # Set environment variables
-          echo "ANDROID_SDK_ROOT=$HOME/.android" >> $GITHUB_ENV
-          echo "$HOME/.android/latest/bin" >> $GITHUB_PATH
-
-          # Accept licenses and install build tools
-          $HOME/.android/latest/bin/sdkmanager --sdk_root=$HOME/.android --licenses <<< "y"
-          $HOME/.android/latest/bin/sdkmanager --sdk_root=$HOME/.android \
-            "platform-tools" "platforms;android-31" "build-tools;33.0.2"
-
-      - name: Install Kivy and system dependencies
-        run: |
-          sudo apt install -y \
+          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git wget \
             libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
             libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev \
             libgstreamer1.0-dev libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
             libgstreamer-plugins-base1.0-dev libffi-dev libssl-dev libjpeg-dev \
             libpng-dev libfreetype6-dev libpq-dev
+
+      - name: Install Buildozer and Cython
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython
+
+      - name: Install Android SDK
+        run: |
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+          unzip cmdline-tools.zip -d temp
+          mv temp/cmdline-tools latest
+          rm -rf temp
+
+      - name: Install Android Build Tools and Accept Licenses
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
+            "platform-tools" "platforms;android-31" "build-tools;33.0.2"
 
       - name: Build APK
         run: |
