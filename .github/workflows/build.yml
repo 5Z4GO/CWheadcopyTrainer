@@ -21,32 +21,45 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git libgl1-mesa-dev
+          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git \
+              libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+              libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
+              zlib1g-dev libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
+              libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+              libffi-dev libssl-dev libjpeg-dev libpng-dev libfreetype6-dev \
+              libpq-dev libunwind-dev
 
-      - name: Install Python dependencies
+      - name: Install Buildozer
         run: |
-          pip install buildozer cython
+          pip install --upgrade pip
+          pip install cython buildozer
 
-      - name: Install Android SDK Commandline Tools
+      - name: Set up Android SDK manually
         run: |
-          mkdir -p /home/runner/android-sdk/cmdline-tools
-          cd /home/runner/android-sdk/cmdline-tools
-          curl -o tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip tools.zip -d cmdline-tools
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O tools.zip
+          unzip tools.zip
           mv cmdline-tools latest
-          rm tools.zip
-          echo "yes" | /home/runner/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/android-sdk \
-            "platform-tools" "platforms;android-31" "build-tools;33.0.2" "ndk;25.2.9519653"
+
+      - name: Install Android SDK packages
+        run: |
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
+            "platform-tools" "platforms;android-31" "build-tools;31.0.0" "ndk;25.2.9519653" "cmdline-tools;latest"
 
       - name: Set environment variables
         run: |
-          echo "ANDROIDSDK=/home/runner/android-sdk" >> $GITHUB_ENV
-          echo "ANDROIDNDK=/home/runner/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "/home/runner/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "/home/runner/android-sdk/platform-tools" >> $GITHUB_PATH
+          echo "ANDROIDSDK=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "ANDROIDNDK=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "ANDROIDAPI=31" >> $GITHUB_ENV
+          echo "ANDROIDMINAPI=21" >> $GITHUB_ENV
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
+          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
-      - name: Build APK
+      - name: Initialize Buildozer and build APK
         run: |
+          buildozer init || true
           buildozer android debug
 
       - name: Upload APK
