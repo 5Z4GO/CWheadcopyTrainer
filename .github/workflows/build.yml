@@ -1,0 +1,42 @@
+# File: .github/workflows/build.yml
+name: Build Kivy APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git
+          pip install buildozer cython
+
+      - name: Build APK
+        run: |
+          sudo apt install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+              libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev \
+              libgstreamer1.0 libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
+              libgstreamer-plugins-base1.0-dev libffi-dev libssl-dev libjpeg-dev \
+              libpng-dev libfreetype6-dev libpq-dev
+          pip install --upgrade buildozer
+          buildozer init || true
+          buildozer android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: CWheadcopyTrainer.apk
+          path: bin/*.apk
