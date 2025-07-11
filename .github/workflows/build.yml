@@ -1,81 +1,12 @@
-name: Build Kivy APK
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git \
-            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
-            zlib1g-dev libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
-            libgstreamer-plugins-base1.0-dev libffi-dev libssl-dev \
-            libjpeg-dev libpng-dev libfreetype6-dev libpq-dev \
-            libunwind-dev
-
-      - name: Install Python packages
-        run: |
-          pip install --upgrade pip
-          pip install buildozer cython
-
-      - name: Install Android cmdline-tools
-        run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          cd $HOME/android-sdk/cmdline-tools
-          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip sdk-tools.zip
-          mv cmdline-tools latest
-          rm sdk-tools.zip
-
-      - name: Set environment variables
-        run: |
-          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-          echo "ANDROIDSDK=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "ANDROIDNDK=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "ANDROIDAPI=31" >> $GITHUB_ENV
-          echo "ANDROIDMINAPI=21" >> $GITHUB_ENV
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/build-tools/31.0.0" >> $GITHUB_PATH
-          echo "$JAVA_HOME/bin" >> $GITHUB_PATH
-
-      - name: Install Android SDK components
-        run: |
-          yes | sdkmanager --sdk_root=$HOME/android-sdk \
-            "platform-tools" \
-            "platforms;android-31" \
-            "build-tools;31.0.0" \
-            "ndk;25.2.9519653" \
-            "cmdline-tools;latest"
-
-      - name: Show AIDL location (debug)
-        run: |
-          find $HOME/android-sdk/build-tools -name aidl || echo "AIDL not found"
-          ls -l $HOME/android-sdk/build-tools/31.0.0/
-
-      - name: Build APK
-        run: |
-          buildozer init || true
-          buildozer android debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: CWheadcopyTrainer.apk
-          path: bin/*.apk
+January 16, 2019
+---------------------------------------
+Accept? (y/N): Skipping following packages as the license is not accepted:
+Android SDK Build-Tools 36
+The following packages can not be installed since their licenses or those of the packages they depend on were not accepted:
+  build-tools;36.0.0
+[=======================================] 100% Computing updates...             
+# Check that aidl can be executed
+# build-tools folder not found /home/runner/.buildozer/android/platform/android-sdk/build-tools
+# Search for Aidl
+# Aidl not found, please install it.
+Error: Process completed with exit code 1.
