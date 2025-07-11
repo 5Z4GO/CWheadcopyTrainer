@@ -11,17 +11,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install system dependencies
+      - name: Install system dependencies and Java 17
         run: |
           sudo apt update
           sudo apt install -y zip unzip openjdk-17-jdk python3-pip git libfuse2 libunwind-dev
+          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+          echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
 
       - name: Install Android cmdline-tools
         run: |
@@ -32,31 +34,31 @@ jobs:
           mv cmdline-tools latest
           echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
-      - name: Accept Android SDK Licenses
-        run: |
-          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
-
-      - name: Install Android SDK packages
+      - name: Install required SDK packages (build-tools, platforms, etc.)
         run: |
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
             "platform-tools" \
             "platforms;android-31" \
-            "build-tools;36.0.0" \
+            "build-tools;31.0.0" \
             "ndk;25.2.9519653" \
-            "cmake;3.22.1"
+            "cmake;3.10.2.4988404"
 
-      - name: Install buildozer
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
+
+      - name: Install Buildozer and Python deps
         run: |
           pip install --upgrade pip
-          pip install cython buildozer
+          pip install cython virtualenv
+          pip install buildozer
 
-      - name: Build APK with Buildozer
-        env:
-          ANDROIDSDK: $HOME/android-sdk
-          ANDROIDNDK: $HOME/android-sdk/ndk/25.2.9519653
-          ANDROIDAPI: 31
-          ANDROIDMINAPI: 21
+      - name: Initialize and Build APK
         run: |
+          export ANDROIDSDK=$HOME/android-sdk
+          export ANDROIDNDK=$ANDROIDSDK/ndk/25.2.9519653
+          export ANDROIDAPI=31
+          export ANDROIDMINAPI=21
           buildozer init || true
           buildozer android debug
 
