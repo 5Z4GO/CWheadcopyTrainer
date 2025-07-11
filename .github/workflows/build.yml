@@ -8,12 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      ANDROIDSDK: /usr/local/lib/android/sdk
-      ANDROIDNDK: /usr/local/lib/android/sdk/ndk/25.2.9519653
-      ANDROIDAPI: 31
-      ANDROIDMINAPI: 21
-      PATH: /usr/local/lib/android/sdk/cmdline-tools/latest/bin:/usr/local/lib/android/sdk/platform-tools:/usr/local/lib/android/sdk/emulator:$PATH
 
     steps:
       - name: Checkout repository
@@ -24,19 +18,25 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Restore essential system PATH
+        run: echo "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH" >> $GITHUB_ENV
+
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y zip unzip openjdk-17-jdk python3-pip libgl1-mesa-dev
+          sudo apt update
+          sudo apt install -y zip unzip tar openjdk-17-jdk python3-pip \
+            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev \
+            libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
+            libgstreamer-plugins-base1.0-dev libffi-dev libssl-dev libjpeg-dev \
+            libpng-dev libfreetype6-dev libpq-dev
+
+      - name: Install buildozer
+        run: |
           pip install --upgrade pip
           pip install buildozer cython
 
-      - name: Install Android SDK tools (required for `aidl`)
-        run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0" "cmdline-tools;latest"
-
-      - name: Build APK
+      - name: Initialize and Build APK
         run: |
           buildozer init || true
           buildozer android debug
