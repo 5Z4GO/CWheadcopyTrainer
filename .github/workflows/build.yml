@@ -7,63 +7,53 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04  # ⚠️ use 22.04 — 20.04 is deprecated
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-      - name: Install system dependencies and Java 17
-        run: |
-          sudo apt update
-          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git libfuse2 libunwind-dev
-          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-          echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y zip unzip openjdk-17-jdk python3-pip git
 
-      - name: Install Android cmdline-tools
-        run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          cd $HOME/android-sdk/cmdline-tools
-          curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip
-          unzip -q commandlinetools.zip
-          mv cmdline-tools latest
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+    - name: Set up Android SDK manually
+      run: |
+        mkdir -p $HOME/android-sdk/cmdline-tools
+        cd $HOME/android-sdk/cmdline-tools
+        curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip sdk-tools.zip
+        mv cmdline-tools latest
+        export PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$PATH
+        yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
+          "platform-tools" \
+          "platforms;android-31" \
+          "build-tools;30.0.3"
+        yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
 
-      - name: Install required SDK packages (build-tools, platforms, etc.)
-        run: |
-          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
-            "platform-tools" \
-            "platforms;android-31" \
-            "build-tools;31.0.0" \
-            "ndk;25.2.9519653" \
-            "cmake;3.10.2.4988404"
+    - name: Install Buildozer
+      run: |
+        pip install --upgrade pip
+        pip install cython
+        pip install buildozer
 
-      - name: Accept Android SDK Licenses
-        run: |
-          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
+    - name: Build APK
+      run: |
+        export ANDROIDSDK=$HOME/android-sdk
+        export ANDROID_HOME=$ANDROIDSDK
+        export PATH=$ANDROIDSDK/platform-tools:$ANDROIDSDK/cmdline-tools/latest/bin:$PATH
 
-      - name: Install Buildozer and Python deps
-        run: |
-          pip install --upgrade pip
-          pip install cython virtualenv
-          pip install buildozer
+        buildozer init || true
+        buildozer android debug
 
-      - name: Initialize and Build APK
-        run: |
-          export ANDROIDSDK=$HOME/android-sdk
-          export ANDROIDNDK=$ANDROIDSDK/ndk/25.2.9519653
-          export ANDROIDAPI=31
-          export ANDROIDMINAPI=21
-          buildozer init || true
-          buildozer android debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: CWheadcopyTrainer.apk
-          path: bin/*.apk
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: CWheadcopyTrainer.apk
+        path: bin/*.apk
