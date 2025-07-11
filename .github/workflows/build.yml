@@ -11,57 +11,49 @@ jobs:
 
     env:
       ANDROID_SDK_ROOT: $HOME/.buildozer/android/platform/android-sdk
-      ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
-      ANDROID_NDK_HOME: $HOME/.buildozer/android/platform/android-ndk-r25b
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git \
+          sudo apt install -y zip unzip openjdk-17-jdk python3-pip git libffi-dev \
+            libssl-dev libjpeg-dev libpng-dev libfreetype6-dev libpq-dev \
             libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev \
-            libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
-            libgstreamer-plugins-base1.0-dev libffi-dev libssl-dev libjpeg-dev \
-            libpng-dev libfreetype6-dev libpq-dev libunwind-dev
+            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
+            zlib1g-dev libmtdev-dev libgl1-mesa-dev libgles2-mesa-dev \
+            libgstreamer-plugins-base1.0-dev libunwind-dev
+          pip install --upgrade pip
+          pip install cython buildozer
 
-          pip install --upgrade cython buildozer
-
-      - name: Download and install Android SDK cmdline-tools
+      - name: Install Android SDK cmdline-tools
         run: |
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
           cd $ANDROID_SDK_ROOT/cmdline-tools
-
           curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip sdk-tools.zip -d cmdline-tools
-          
-          # Fix path and permissions
-          mv cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
-
+          unzip sdk-tools.zip -d temp
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
+          mv temp/* $ANDROID_SDK_ROOT/cmdline-tools/latest
           echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
-      - name: Install Android SDK components
+      - name: Accept Android SDK licenses and install build-tools
         run: |
-          yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
-            "platform-tools" \
-            "platforms;android-31" \
-            "build-tools;30.0.3" \
-            "ndk;25.2.9519653"
-
           yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
+          sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
+            "platform-tools" "platforms;android-31" "build-tools;30.0.3"
+
+      - name: Initialize Buildozer
+        run: buildozer init || true
 
       - name: Build APK
-        run: |
-          buildozer init || true
-          buildozer android debug
+        run: buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
