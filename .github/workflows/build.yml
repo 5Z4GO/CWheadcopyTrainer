@@ -40,20 +40,26 @@ jobs:
         run: |
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
           cd $ANDROID_SDK_ROOT/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
-          unzip cmdline-tools.zip -d temp
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O tools.zip
+          unzip tools.zip -d temp
           mv temp/cmdline-tools latest
           rm -rf temp
 
       - name: Accept licenses and install build tools
         run: |
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} --licenses
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} \
-            "platform-tools" "platforms;android-31" "build-tools;33.0.2"
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
+            "platform-tools" "platforms;android-31" "build-tools;33.0.2" "ndk;25.2.9519653"
+
+      - name: Configure Buildozer paths
+        run: |
+          buildozer init || true
+          sed -i "s|# android.sdk_path =.*|android.sdk_path = $ANDROID_SDK_ROOT|" buildozer.spec
+          sed -i "s|# android.ndk_path =.*|android.ndk_path = $ANDROID_SDK_ROOT/ndk/25.2.9519653|" buildozer.spec
+          sed -i "s|# android.accept_sdk_license = False|android.accept_sdk_license = True|" buildozer.spec
 
       - name: Build APK with Buildozer
         run: |
-          buildozer init || true
           buildozer android debug
 
       - name: Upload APK
