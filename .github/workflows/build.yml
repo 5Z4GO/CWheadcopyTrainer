@@ -40,7 +40,7 @@ jobs:
           curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip sdk-tools.zip -d temp
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
-          mv temp/* $ANDROID_SDK_ROOT/cmdline-tools/latest
+          mv temp/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest
 
       - name: Accept Android SDK licenses and install build-tools
         run: |
